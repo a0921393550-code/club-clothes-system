@@ -21,8 +21,12 @@ def get_worksheet():
         st.secrets["gcp_service_account"], scopes=scopes
     )
     client = gspread.authorize(creds)
-    ws = client.open_by_key(SPREADSHEET_ID).worksheet(WORKSHEET_NAME)
-    return ws
+    sh = client.open_by_key(SPREADSHEET_ID)
+st.write("✅ 找到試算表：", sh.title)
+st.write("📄 目前分頁：", [w.title for w in sh.worksheets()])  # 會直接列出所有分頁名稱
+ws = sh.worksheet(WORKSHEET_NAME)
+return ws
+
 
 def load_data(ws):
     records = ws.get_all_records()
