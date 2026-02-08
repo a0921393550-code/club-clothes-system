@@ -9,7 +9,7 @@ from google.oauth2.service_account import Credentials
 st.set_page_config(page_title="社團服裝借用系統（雲端版）", layout="wide")
 
 # ====== 設定 ======
-SPREADSHEET_ID = "1rwiSSLJQaoBTH8Std8IBW03deOJ9RpkSA6rhxWiqmH8"
+SPREADSHEET_ID = "1rwiSSLJQaoBTH8Std8lBW03deOJ9RpksA6rhxWiqmH8"
 WORKSHEET_NAME = "工作表1"
 COLUMNS = ["時間", "姓名", "學號", "動作", "服裝名稱", "數量", "備註"]
 
