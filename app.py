@@ -59,21 +59,20 @@ with st.form("borrow_form"):
 
     submitted = st.form_submit_button("送出")
 
-   if submitted:
-    if not name or not clothes:
-        st.warning("⚠️ 姓名與服裝名稱必填")
-    else:
-        append_row(ws, [
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            name,
-            student_id,
-            action,
-            clothes,
-            int(qty),
-            note
-        ])
-        st.success("✅ 紀錄完成！")
-        df = load_data(ws)
+    if submitted:
+        if not name or not clothes:
+            st.warning("⚠️ 姓名與服裝名稱必填")
+        else:
+            append_row(ws, [
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                name,
+                student_id,
+                action,
+                clothes,
+                int(qty),
+                note
+            ])
+            st.success("✅ 紀錄完成！")
+            df = load_data(ws)
 
-
-switch to google sheets version
+#switch to google sheets version
