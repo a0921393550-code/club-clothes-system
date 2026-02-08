@@ -66,3 +66,4 @@ with st.form("borrow_form"):
             append_row(ws, [
                 datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 name,
+switch to google sheets version
