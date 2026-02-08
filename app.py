@@ -64,6 +64,13 @@ with st.form("borrow_form"):
             st.warning("⚠️ 姓名與服裝名稱必填")
         else:
             append_row(ws, [
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                name,
+    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    name,
+    student_id,
+    action,
+    clothes,
+    int(qty),
+    note
+])
+
 switch to google sheets version
