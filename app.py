@@ -11,7 +11,7 @@ st.set_page_config(page_title="社團管理系統", layout="wide")
 # =========================
 # 基本設定
 # =========================
-SPREADSHEET_ID = "1rwiSSLJQaoBTH8Std8IBW03deOJ9RpkSA6rhxWiqmH8"
+SPREADSHEET_ID = "1rwiSSLJQaoBTH8Std8IBW03deOJ9RpksA6rhxWiqmH8"
 
 CLOTHES_SHEET = "服裝紀錄"
 MEMBERS_SHEET = "社員名單"
