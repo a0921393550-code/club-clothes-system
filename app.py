@@ -286,8 +286,9 @@ with tab2:
 
         if not fee_calc.empty:
             fee_calc["金額"] = pd.to_numeric(fee_calc["金額"], errors="coerce").fillna(0)
-            club_fee_df = fee_calc[fee_calc["項目"].astype(str).str.strip() == "社費"]
-
+           club_fee_df = fee_calc[
+        fee_calc["項目"].astype(str).str.contains("社費", case=False, na=False)
+        ]
             paid_summary = (
                 club_fee_df.groupby("姓名", as_index=False)["金額"]
                 .sum()
