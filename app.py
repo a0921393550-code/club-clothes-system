@@ -17,7 +17,7 @@ CLOTHES_SHEET = "服裝紀錄"
 MEMBERS_SHEET = "社員名單"
 FEE_SHEET = "費用紀錄"
 
-ADMIN_PASSWORD = "mingwu2026"
+ADMIN_PASSWORD = "dance99"
 
 CLOTHES_COLUMNS = ["時間", "姓名", "學號", "動作", "服裝名稱", "數量", "備註"]
 MEMBERS_COLUMNS = ["姓名", "應繳社費", "備註"]
