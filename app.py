@@ -19,11 +19,9 @@ FEE_SHEET = "費用紀錄"
 
 ADMIN_PASSWORD = "dance99"
 
-# 預設社費金額（用來計算未繳費）
-DEFAULT_CLUB_FEE = 500
 
 CLOTHES_COLUMNS = ["時間", "姓名", "學號", "動作", "服裝名稱", "數量", "備註"]
-MEMBERS_COLUMNS = ["姓名", "備註"]
+MEMBERS_COLUMNS = ["姓名", "應繳金額","備註"]
 FEE_COLUMNS = ["時間", "姓名", "項目", "金額", "備註"]
 
 
@@ -279,38 +277,41 @@ with tab2:
 
     st.divider()
 
-    st.subheader("📌 未繳社費名單")
+   st.subheader("📌 未繳社費名單")
 
-    if not members_df.empty:
-        fee_calc = fee_df.copy()
+if not members_df.empty:
+    member_fee_df = members_df.copy()
+    member_fee_df["應繳社費"] = pd.to_numeric(
+        member_fee_df["應繳社費"], errors="coerce"
+    ).fillna(0)
 
-        if not fee_calc.empty:
-            fee_calc["金額"] = pd.to_numeric(fee_calc["金額"], errors="coerce").fillna(0)
-            club_fee_df = fee_calc[fee_calc["項目"].astype(str).str.strip() == "社費"]
+    fee_calc = fee_df.copy()
 
-            paid_summary = (
-                club_fee_df.groupby("姓名", as_index=False)["金額"]
-                .sum()
-                .rename(columns={"金額": "已繳社費"})
-            )
-        else:
-            paid_summary = pd.DataFrame(columns=["姓名", "已繳社費"])
+    if not fee_calc.empty:
+        fee_calc["金額"] = pd.to_numeric(fee_calc["金額"], errors="coerce").fillna(0)
+        club_fee_df = fee_calc[fee_calc["項目"].astype(str).str.strip() == "社費"]
 
-        members_only = pd.DataFrame({"姓名": member_names})
-        unpaid_df = members_only.merge(paid_summary, on="姓名", how="left")
-        unpaid_df["已繳社費"] = unpaid_df["已繳社費"].fillna(0)
-        unpaid_df["是否未繳"] = unpaid_df["已繳社費"] < DEFAULT_CLUB_FEE
+        paid_summary = (
+            club_fee_df.groupby("姓名", as_index=False)["金額"]
+            .sum()
+            .rename(columns={"金額": "已繳社費"})
+        )
+    else:
+        paid_summary = pd.DataFrame(columns=["姓名", "已繳社費"])
 
-        unpaid_members = unpaid_df[unpaid_df["是否未繳"]].copy()
-        unpaid_members["尚差金額"] = DEFAULT_CLUB_FEE - unpaid_members["已繳社費"]
+    unpaid_df = member_fee_df.merge(paid_summary, on="姓名", how="left")
+    unpaid_df["已繳社費"] = unpaid_df["已繳社費"].fillna(0)
+    unpaid_df["尚差金額"] = unpaid_df["應繳社費"] - unpaid_df["已繳社費"]
 
-        if unpaid_members.empty:
-            st.success("🎉 目前沒有未繳社費的社員")
-        else:
-            st.dataframe(
-                unpaid_members[["姓名", "已繳社費", "尚差金額"]],
-                use_container_width=True
-            )
+    unpaid_members = unpaid_df[unpaid_df["尚差金額"] > 0].copy()
+
+    if unpaid_members.empty:
+        st.success("🎉 目前沒有未繳社費的社員")
+    else:
+        st.dataframe(
+            unpaid_members[["姓名", "應繳社費", "已繳社費", "尚差金額", "備註"]],
+            use_container_width=True
+        )
 
     st.divider()
 
@@ -366,10 +367,11 @@ with tab3:
         st.success("✅ 已進入管理員區")
 
         st.markdown("### 新增社員")
-        with st.form("member_form"):
-            new_member_name = st.text_input("社員姓名")
-            new_member_note = st.text_input("備註")
-            member_submitted = st.form_submit_button("新增社員")
+       with st.form("member_form"):
+           new_member_name = st.text_input("社員姓名")
+           new_member_fee = st.number_input("應繳社費", min_value=0, step=1, value=500)
+           new_member_note = st.text_input("備註")
+           member_submitted = st.form_submit_button("新增社員")
 
             if member_submitted:
                 clean_name = new_member_name.strip()
@@ -381,6 +383,7 @@ with tab3:
                 else:
                     append_row(MEMBERS_SHEET, [
                         clean_name,
+                        int(new_member_fee),
                         new_member_note.strip()
                     ])
                     st.success("✅ 新增社員成功！")
