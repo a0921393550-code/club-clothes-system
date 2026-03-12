@@ -251,7 +251,13 @@ with tab2:
         st.warning("⚠️ 目前沒有社員資料，請先到「管理員」分頁新增社員。")
     else:
         with st.form("fee_form"):
-            member_name = st.selectbox("姓名", member_names)
+           member_name = st.text_input(
+               "姓名",
+               placeholder="例如：王小明 / 體驗學員"
+           )
+
+if member_names:
+    st.caption("社員名單：" + "、".join(member_names))
             fee_type = st.text_input("項目（例如：社費 / 表演服費 / 活動費）")
             amount = st.number_input("金額", min_value=0, step=1)
             fee_note = st.text_input("備註")
