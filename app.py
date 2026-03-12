@@ -17,7 +17,7 @@ CLOTHES_SHEET = "服裝紀錄"
 MEMBERS_SHEET = "社員名單"
 FEE_SHEET = "費用紀錄"
 
-ADMIN_PASSWORD = "mingwu2026"
+ADMIN_PASSWORD = "dance99"
 
 # 預設社費金額（用來計算未繳費）
 DEFAULT_CLUB_FEE = 500
