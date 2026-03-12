@@ -113,7 +113,8 @@ try:
 
 except Exception as e:
     st.error("❌ 無法連線到 Google Sheets")
-    st.code(str(e))
+    st.write("錯誤類型：", type(e).__name__)
+    st.code(repr(e))
     st.stop()
 
 # 讓社員名單乾淨一點
