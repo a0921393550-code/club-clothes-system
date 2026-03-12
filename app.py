@@ -302,6 +302,8 @@ with tab2:
 
     st.subheader("📌 未繳社費名單")
 
+    all_fee_status = pd.DataFrame()
+
     if not members_df.empty:
         member_fee_df = members_df.copy()
         member_fee_df["姓名"] = member_fee_df["姓名"].astype(str).apply(normalize_text)
@@ -328,11 +330,11 @@ with tab2:
         else:
             paid_summary = pd.DataFrame(columns=["姓名", "已繳社費"])
 
-        unpaid_df = member_fee_df.merge(paid_summary, on="姓名", how="left")
-        unpaid_df["已繳社費"] = unpaid_df["已繳社費"].fillna(0)
-        unpaid_df["尚差金額"] = unpaid_df["應繳社費"] - unpaid_df["已繳社費"]
+        all_fee_status = member_fee_df.merge(paid_summary, on="姓名", how="left")
+        all_fee_status["已繳社費"] = all_fee_status["已繳社費"].fillna(0)
+        all_fee_status["尚差金額"] = all_fee_status["應繳社費"] - all_fee_status["已繳社費"]
 
-        unpaid_members = unpaid_df[unpaid_df["尚差金額"] > 0].copy()
+        unpaid_members = all_fee_status[all_fee_status["尚差金額"] > 0].copy()
 
         if unpaid_members.empty:
             st.success("🎉 目前沒有未繳社費的社員")
@@ -341,6 +343,22 @@ with tab2:
                 unpaid_members[["姓名", "應繳社費", "已繳社費", "尚差金額", "備註"]],
                 use_container_width=True
             )
+
+    st.divider()
+
+    st.subheader("📋 全社員繳費狀態")
+
+    if not all_fee_status.empty:
+        all_fee_status["狀態"] = all_fee_status["尚差金額"].apply(
+            lambda x: "已繳清" if x <= 0 else "未繳清"
+        )
+
+        st.dataframe(
+            all_fee_status[["姓名", "應繳社費", "已繳社費", "尚差金額", "狀態", "備註"]],
+            use_container_width=True
+        )
+    else:
+        st.info("目前沒有社員資料。")
 
     st.divider()
 
