@@ -11,7 +11,7 @@ st.set_page_config(page_title="社團管理系統", layout="wide")
 # =========================
 # 基本設定
 # =========================
-SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1rwiSSLJQaoBTH8Std8lBW03deOJ9RpksA6rhxWiqmH8/edit?gid=1365718203#gid=1365718203"
+SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1rwiSSLJQaoBTH8Std8IBW03deOJ9RpksA6rhxWiqmH8/edit#gid=1365718203"
 
 CLOTHES_SHEET = "服裝紀錄"
 MEMBERS_SHEET = "社員名單"
@@ -75,8 +75,12 @@ def reset_header_if_needed(ws, correct_columns):
     current_header = values[0]
 
     if current_header != correct_columns:
-        ws.delete_rows(1)
-        ws.insert_row(correct_columns, 1)
+        old_rows = values[1:] if len(values) > 1 else []
+        ws.clear()
+        ws.update("A1", [correct_columns])
+
+        if old_rows:
+            ws.update(f"A2", old_rows)
 
 
 def ensure_headers():
@@ -187,7 +191,7 @@ with tab1:
     if not calc.empty:
         calc["數量"] = pd.to_numeric(calc["數量"], errors="coerce").fillna(0)
         calc["實際數量"] = calc.apply(
-            lambda r: r["數量"] if r["動作"] == "借用" else -r["數量"],
+            lambda r: r["數量"] if str(r["動作"]).strip() == "借用" else -r["數量"],
             axis=1
         )
 
@@ -278,6 +282,7 @@ with tab2:
 
     if not members_df.empty:
         member_fee_df = members_df.copy()
+        member_fee_df["姓名"] = member_fee_df["姓名"].astype(str).str.strip()
         member_fee_df["應繳社費"] = pd.to_numeric(
             member_fee_df["應繳社費"], errors="coerce"
         ).fillna(0)
@@ -285,10 +290,14 @@ with tab2:
         fee_calc = fee_df.copy()
 
         if not fee_calc.empty:
+            fee_calc["姓名"] = fee_calc["姓名"].astype(str).str.strip()
+            fee_calc["項目"] = fee_calc["項目"].astype(str).str.strip()
             fee_calc["金額"] = pd.to_numeric(fee_calc["金額"], errors="coerce").fillna(0)
-           club_fee_df = fee_calc[
-        fee_calc["項目"].astype(str).str.contains("社費", case=False, na=False)
-        ]
+
+            club_fee_df = fee_calc[
+                fee_calc["項目"].astype(str).str.contains("社費", case=False, na=False)
+            ]
+
             paid_summary = (
                 club_fee_df.groupby("姓名", as_index=False)["金額"]
                 .sum()
