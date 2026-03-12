@@ -11,13 +11,16 @@ st.set_page_config(page_title="社團管理系統", layout="wide")
 # =========================
 # 基本設定
 # =========================
-SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1rwiSSLJQaoBTH8Std8lBW03deOJ9RpksA6rhxWiqmH8/edit?gid=1365718203#gid=1365718203"
+SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1rwiSSLJQaoBTH8Std8IBW03deOJ9RpksA6rhxWiqmH8/edit#gid=1365718203"
 
 CLOTHES_SHEET = "服裝紀錄"
 MEMBERS_SHEET = "社員名單"
 FEE_SHEET = "費用紀錄"
 
-ADMIN_PASSWORD = "dance99"
+ADMIN_PASSWORD = "mingwu2026"
+
+# 預設社費金額（用來計算未繳費）
+DEFAULT_CLUB_FEE = 500
 
 CLOTHES_COLUMNS = ["時間", "姓名", "學號", "動作", "服裝名稱", "數量", "備註"]
 MEMBERS_COLUMNS = ["姓名", "備註"]
@@ -37,14 +40,17 @@ def get_client():
     return gspread.authorize(creds)
 
 
-def get_worksheet(sheet_name):
+def get_spreadsheet():
     client = get_client()
-    spreadsheet = client.open_by_url(SPREADSHEET_URL)
+    return client.open_by_url(SPREADSHEET_URL)
+
+
+def get_worksheet(sheet_name):
+    spreadsheet = get_spreadsheet()
 
     try:
         return spreadsheet.worksheet(sheet_name)
     except Exception:
-        # 如果分頁不存在，就自動建立
         if sheet_name == CLOTHES_SHEET:
             columns = CLOTHES_COLUMNS
         elif sheet_name == MEMBERS_SHEET:
@@ -57,31 +63,41 @@ def get_worksheet(sheet_name):
         ws = spreadsheet.add_worksheet(title=sheet_name, rows=1000, cols=20)
 
         if columns:
-            ws.append_row(columns, value_input_option="USER_ENTERED")
+            ws.update("A1", [columns])
 
         return ws
 
+
+def reset_header_if_needed(ws, correct_columns):
+    values = ws.get_all_values()
+
+    if not values:
+        ws.update("A1", [correct_columns])
+        return
+
+    current_header = values[0]
+
+    if current_header != correct_columns:
+        ws.delete_rows(1)
+        ws.insert_row(correct_columns, 1)
+
+
 def ensure_headers():
-    sheets_info = [
+    sheet_info = [
         (CLOTHES_SHEET, CLOTHES_COLUMNS),
         (MEMBERS_SHEET, MEMBERS_COLUMNS),
         (FEE_SHEET, FEE_COLUMNS),
     ]
 
-    for sheet_name, columns in sheets_info:
+    for sheet_name, columns in sheet_info:
         ws = get_worksheet(sheet_name)
-        data = ws.get_all_values()
-        if not data:
-            ws.append_row(columns, value_input_option="USER_ENTERED")
-        else:
-            header = data[0]
-            if header != columns:
-                st.warning(f"⚠️ 分頁「{sheet_name}」欄位標題不一致，請檢查。")
+        reset_header_if_needed(ws, columns)
 
 
 def load_data(sheet_name, columns):
     ws = get_worksheet(sheet_name)
     records = ws.get_all_records()
+
     if not records:
         return pd.DataFrame(columns=columns)
 
@@ -117,7 +133,6 @@ except Exception as e:
     st.code(repr(e))
     st.stop()
 
-# 讓社員名單乾淨一點
 member_names = []
 if not members_df.empty:
     member_names = (
@@ -186,7 +201,10 @@ with tab1:
         unreturned = unreturned[unreturned["實際數量"] > 0]
         unreturned = unreturned.rename(columns={"實際數量": "尚未歸還數量"})
 
-        st.dataframe(unreturned, use_container_width=True)
+        if unreturned.empty:
+            st.info("目前沒有未歸還服裝。")
+        else:
+            st.dataframe(unreturned, use_container_width=True)
 
         st.subheader("📦 各服裝目前外借數量")
         if not unreturned.empty:
@@ -228,12 +246,14 @@ with tab1:
 with tab2:
     st.subheader("社費 / 收入管理")
 
+    st.markdown(f"目前預設社費：**{DEFAULT_CLUB_FEE} 元**")
+
     if not member_names:
         st.warning("⚠️ 目前沒有社員資料，請先到「管理員」分頁新增社員。")
     else:
         with st.form("fee_form"):
             member_name = st.selectbox("姓名", member_names)
-            fee_type = st.selectbox("項目", ["社費", "表演服費", "活動費", "保證金", "其他"])
+            fee_type = st.text_input("項目（例如：社費 / 表演服費 / 活動費）")
             amount = st.number_input("金額", min_value=0, step=1)
             fee_note = st.text_input("備註")
 
@@ -242,18 +262,55 @@ with tab2:
             if fee_submitted:
                 if not member_name:
                     st.warning("⚠️ 請選擇社員")
+                elif not fee_type.strip():
+                    st.warning("⚠️ 請輸入項目名稱")
                 elif amount <= 0:
                     st.warning("⚠️ 金額必須大於 0")
                 else:
                     append_row(FEE_SHEET, [
                         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         member_name,
-                        fee_type,
+                        fee_type.strip(),
                         int(amount),
                         fee_note.strip()
                     ])
                     st.success("✅ 收入紀錄完成！")
                     st.rerun()
+
+    st.divider()
+
+    st.subheader("📌 未繳社費名單")
+
+    if not members_df.empty:
+        fee_calc = fee_df.copy()
+
+        if not fee_calc.empty:
+            fee_calc["金額"] = pd.to_numeric(fee_calc["金額"], errors="coerce").fillna(0)
+            club_fee_df = fee_calc[fee_calc["項目"].astype(str).str.strip() == "社費"]
+
+            paid_summary = (
+                club_fee_df.groupby("姓名", as_index=False)["金額"]
+                .sum()
+                .rename(columns={"金額": "已繳社費"})
+            )
+        else:
+            paid_summary = pd.DataFrame(columns=["姓名", "已繳社費"])
+
+        members_only = pd.DataFrame({"姓名": member_names})
+        unpaid_df = members_only.merge(paid_summary, on="姓名", how="left")
+        unpaid_df["已繳社費"] = unpaid_df["已繳社費"].fillna(0)
+        unpaid_df["是否未繳"] = unpaid_df["已繳社費"] < DEFAULT_CLUB_FEE
+
+        unpaid_members = unpaid_df[unpaid_df["是否未繳"]].copy()
+        unpaid_members["尚差金額"] = DEFAULT_CLUB_FEE - unpaid_members["已繳社費"]
+
+        if unpaid_members.empty:
+            st.success("🎉 目前沒有未繳社費的社員")
+        else:
+            st.dataframe(
+                unpaid_members[["姓名", "已繳社費", "尚差金額"]],
+                use_container_width=True
+            )
 
     st.divider()
 
@@ -281,13 +338,14 @@ with tab2:
     st.subheader("📊 收入統計")
 
     if not fee_df.empty:
-        fee_df["金額"] = pd.to_numeric(fee_df["金額"], errors="coerce").fillna(0)
+        fee_stat = fee_df.copy()
+        fee_stat["金額"] = pd.to_numeric(fee_stat["金額"], errors="coerce").fillna(0)
 
-        total_income = fee_df["金額"].sum()
+        total_income = fee_stat["金額"].sum()
         st.metric("總收入", f"{int(total_income)} 元")
 
         fee_summary = (
-            fee_df.groupby("項目", as_index=False)["金額"]
+            fee_stat.groupby("項目", as_index=False)["金額"]
             .sum()
             .sort_values("金額", ascending=False)
         )
@@ -329,8 +387,8 @@ with tab3:
                     st.rerun()
 
         st.divider()
-        st.markdown("### 社員名單")
 
+        st.markdown("### 社員名單")
         if members_df.empty:
             st.info("目前沒有社員。")
         else:
