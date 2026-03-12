@@ -11,7 +11,7 @@ st.set_page_config(page_title="社團管理系統", layout="wide")
 # =========================
 # 基本設定
 # =========================
-SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1rwiSSLJQaoBTH8Std8IBW03deOJ9RpksA6rhxWiqmH8/edit#gid=1365718203"
+SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1rwiSSLJQaoBTH8Std8lBW03deOJ9RpksA6rhxWiqmH8/edit?gid=5696253#gid=5696253"
 
 CLOTHES_SHEET = "服裝紀錄"
 MEMBERS_SHEET = "社員名單"
