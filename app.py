@@ -11,7 +11,7 @@ st.set_page_config(page_title="社團管理系統", layout="wide")
 # =========================
 # 基本設定
 # =========================
-SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1rwiSSLJQaoBTH8Std8lBW03deOJ9RpksA6rhxWiqmH8/edit?gid=5696253#gid=5696253"
+SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1rwiSSLJQaoBTH8Std8IBW03deOJ9RpksA6rhxWiqmH8/edit#gid=1365718203"
 
 CLOTHES_SHEET = "服裝紀錄"
 MEMBERS_SHEET = "社員名單"
@@ -80,7 +80,7 @@ def reset_header_if_needed(ws, correct_columns):
         ws.update("A1", [correct_columns])
 
         if old_rows:
-            ws.update(f"A2", old_rows)
+            ws.update("A2", old_rows)
 
 
 def ensure_headers():
@@ -247,40 +247,40 @@ with tab1:
 with tab2:
     st.subheader("社費 / 收入管理")
 
-    if not member_names:
-        st.warning("⚠️ 目前沒有社員資料，請先到「管理員」分頁新增社員。")
-    else:
-        with st.form("fee_form"):
-           member_name = st.text_input(
-               "姓名",
-               placeholder="例如：王小明 / 體驗學員"
-           )
+    with st.form("fee_form"):
+        member_name = st.text_input(
+            "姓名（可手動輸入）",
+            placeholder="例如：王小明 / 體驗學員"
+        )
 
-if member_names:
-    st.caption("社員名單：" + "、".join(member_names))
-            fee_type = st.text_input("項目（例如：社費 / 表演服費 / 活動費）")
-            amount = st.number_input("金額", min_value=0, step=1)
-            fee_note = st.text_input("備註")
+        if member_names:
+            st.caption("社員名單：" + "、".join(member_names))
 
-            fee_submitted = st.form_submit_button("送出")
+        fee_type = st.text_input("項目（例如：社費 / 表演服費 / 活動費）")
+        amount = st.number_input("金額", min_value=0, step=1)
+        fee_note = st.text_input("備註")
 
-            if fee_submitted:
-                if not member_name:
-                    st.warning("⚠️ 請選擇社員")
-                elif not fee_type.strip():
-                    st.warning("⚠️ 請輸入項目名稱")
-                elif amount <= 0:
-                    st.warning("⚠️ 金額必須大於 0")
-                else:
-                    append_row(FEE_SHEET, [
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        member_name,
-                        fee_type.strip(),
-                        int(amount),
-                        fee_note.strip()
-                    ])
-                    st.success("✅ 收入紀錄完成！")
-                    st.rerun()
+        fee_submitted = st.form_submit_button("送出")
+
+        if fee_submitted:
+            clean_member_name = member_name.strip()
+
+            if not clean_member_name:
+                st.warning("⚠️ 請輸入姓名")
+            elif not fee_type.strip():
+                st.warning("⚠️ 請輸入項目名稱")
+            elif amount <= 0:
+                st.warning("⚠️ 金額必須大於 0")
+            else:
+                append_row(FEE_SHEET, [
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    clean_member_name,
+                    fee_type.strip(),
+                    int(amount),
+                    fee_note.strip()
+                ])
+                st.success("✅ 收入紀錄完成！")
+                st.rerun()
 
     st.divider()
 
@@ -325,6 +325,31 @@ if member_names:
                 unpaid_members[["姓名", "應繳社費", "已繳社費", "尚差金額", "備註"]],
                 use_container_width=True
             )
+
+    st.divider()
+
+    st.subheader("👥 非社員名單")
+
+    if not fee_df.empty:
+        fee_names = (
+            fee_df["姓名"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+        )
+        fee_names = sorted(set([name for name in fee_names if name]))
+
+        member_name_set = set(member_names)
+
+        non_member_names = [name for name in fee_names if name not in member_name_set]
+
+        if non_member_names:
+            non_member_df = pd.DataFrame({"姓名": non_member_names})
+            st.dataframe(non_member_df, use_container_width=True)
+        else:
+            st.info("目前沒有非社員紀錄。")
+    else:
+        st.info("目前沒有費用紀錄。")
 
     st.divider()
 
