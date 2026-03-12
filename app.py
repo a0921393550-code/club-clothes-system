@@ -39,7 +39,7 @@ def get_client():
 
 def get_worksheet(sheet_name):
     client = get_client()
-    spreadsheet = client.open_by_key(SPREADSHEET_ID)
+    spreadsheet = client.open_by_url(SPREADSHEET_URL)
 
     try:
         return spreadsheet.worksheet(sheet_name)
