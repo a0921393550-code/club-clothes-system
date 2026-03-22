@@ -47,6 +47,7 @@ def get_client():
     return gspread.authorize(creds)
 
 
+@st.cache_resource
 def get_spreadsheet():
     client = get_client()
     return client.open_by_url(SPREADSHEET_URL)
@@ -105,6 +106,7 @@ def ensure_headers():
         reset_header_if_needed(ws, columns)
 
 
+@st.cache_data(ttl=30)
 def load_data(sheet_name, columns):
     ws = get_worksheet(sheet_name)
     records = ws.get_all_records()
@@ -124,6 +126,7 @@ def load_data(sheet_name, columns):
 def append_row(sheet_name, row):
     ws = get_worksheet(sheet_name)
     ws.append_row(row, value_input_option="USER_ENTERED")
+    load_data.clear()
 
 
 # =========================
@@ -132,16 +135,25 @@ def append_row(sheet_name, row):
 st.title("社團管理系統")
 
 try:
-    ensure_headers()
+    if "headers_checked" not in st.session_state:
+        ensure_headers()
+        st.session_state["headers_checked"] = True
 
     clothes_df = load_data(CLOTHES_SHEET, CLOTHES_COLUMNS)
     members_df = load_data(MEMBERS_SHEET, MEMBERS_COLUMNS)
     fee_df = load_data(FEE_SHEET, FEE_COLUMNS)
 
 except Exception as e:
-    st.error("❌ 無法連線到 Google Sheets")
-    st.write("錯誤類型：", type(e).__name__)
-    st.code(repr(e))
+    error_text = repr(e)
+
+    if "Quota exceeded" in error_text or "429" in error_text:
+        st.error("❌ 目前讀取次數太頻繁，請等 1～2 分鐘後再試一次。")
+        st.info("這是 Google Sheets API 的暫時限制，不是資料遺失。")
+    else:
+        st.error("❌ 無法連線到 Google Sheets")
+        st.write("錯誤類型：", type(e).__name__)
+        st.code(error_text)
+
     st.stop()
 
 member_names = []
